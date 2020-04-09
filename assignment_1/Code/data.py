@@ -1,4 +1,5 @@
 import numpy as np
+from tqdm import tqdm
 
 def read_pcd(fname):
     '''
@@ -43,10 +44,11 @@ def read_pcd(fname):
                 l = [float(i) for i in l]
                 data.append(l)
 
-    for i in range(points):
-        for j, d in enumerate(data):
-            d.append(i)
-            d.append(j)
+    print('done with first bit')
+    # for i in tqdm(range(points)):
+    #     for j, d in enumerate(data):
+    #         d.append(i)
+    #         d.append(j)
 
     return np.array(data)
 

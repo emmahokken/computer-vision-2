@@ -3,7 +3,9 @@ from sklearn.neighbors import NearestNeighbors
 from scipy.spatial import KDTree
 import open3d as o3d
 import math
+import matplotlib.pyplot as plt
 
+from data import read_pcd
 
 def visualize_pcd(pcd_array):
     '''
@@ -65,7 +67,7 @@ def compute_R_t(base, target):
 
 def iterative_closest_point(base, target, iters):
     #Todo. Maybe something to make them the same shape, if nessecay
-
+    all_rms = []
     # Initialize rotation matrix R and translation vector t
     R = np.identity(base.shape[1])
     t = np.zeros(base.shape[1]).shape
@@ -80,11 +82,14 @@ def iterative_closest_point(base, target, iters):
         R, t = compute_R_t(base, target[ind,:]) # M-step
         base = np.dot(base, R) - t # update the base point cloud
         print(RMS)
+        all_rms.append(RMS)
 
         #else:
         #    break
 
 
+    plt.plot(all_rms)
+    plt.show()
 
 
 
@@ -109,4 +114,6 @@ target[:, 0] = np.reshape(mesh_x, -1)
 target[:, 1] = np.reshape(mesh_y, -1)
 target[:, 2] = np.reshape(z_norm, -1)
 
-iterative_closest_point(base, target, 1000)
+base = read_pcd('../Data/data/0000000000.pcd')
+target = read_pcd('../Data/data/0000000001.pcd')
+iterative_closest_point(base, target, 80)
