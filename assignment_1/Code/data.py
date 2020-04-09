@@ -42,9 +42,10 @@ def read_pcd(fname):
 
             elif l[0] != '#':
                 l = [float(i) for i in l]
-                data.append(l)
+                data.append(l[:-1])
 
     print('done with first bit')
+
     # for i in tqdm(range(points)):
     #     for j, d in enumerate(data):
     #         d.append(i)
