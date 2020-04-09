@@ -82,7 +82,6 @@ def iterative_closest_point(base, target, iters):
 
     # Optimize R and t using the EM-algorithm
     RMS = math.inf
-    print(RMS)
     for iter in range(iters): #todo: maybe chance to a while loop.
         ind, new_RMS = find_closest_points(base, padded_target) # E-step
 
@@ -102,7 +101,8 @@ def iterative_closest_point(base, target, iters):
 
 
 base = read_pcd('../Data/data/0000000000.pcd')
-for i in range(1):
+for i in range(0,4,2):
+    print('iteration {}'.format(i))
     target = read_pcd(f'../Data/data/000000000{str(i + 1)}.pcd')
     base = iterative_closest_point(base, target, 35)
 

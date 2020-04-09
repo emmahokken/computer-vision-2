@@ -48,9 +48,6 @@ def read_pcd(fname):
 
     pcd = np.array(data)
     pcd = pcd[pcd[:, -1] < 2]
-
-    print('pcd loaded')
-
     return(pcd)
 
 
