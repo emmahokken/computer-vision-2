@@ -109,13 +109,13 @@ def merge_pcds(start, end, step):
     base = read_pcd('../Data/data/0000000000.pcd')
 
     for i in range(start, end, step):
-        print('iteration {}'.format(i))
+        print(f'iteration {i}')
 
         target = read_pcd(f'../Data/data/00000000{i + 1:02}.pcd')
         base = iterative_closest_point(base, target, 35) #update base
         base = np.vstack((base, target))
 
-    with open('../results/start_{}_end_{}_step_{}.pkl'.format(start, end, step),'wb') as f:
+    with open(f'../results/start_{start}_end_{end}_step_{step}.pkl','wb') as f:
         pkl.dump(base, f)
     visualize_pcd(base)
 
