@@ -100,14 +100,19 @@ def iterative_closest_point(base, target, iters):
     stacked = np.vstack((base, target))
     return stacked
 
+def sub_sample():
+    print('hello world')
 
 def merge_pcds(start, end, step):
     base = read_pcd('../Data/data/0000000000.pcd')
 
     for i in range(start, end, step):
         print('iteration {}'.format(i))
-
         target = read_pcd(f'../Data/data/000000000{str(i + 1)}.pcd')
+
+        # subsample base
+        sub_sample()
+
         base = iterative_closest_point(base, target, 35) #update base
 
     with open('../results/start_{}_end_{}_step_{}.pkl'.format(start, end, step),'wb') as f:
