@@ -107,7 +107,7 @@ def merge_pcds(start, end, step):
     for i in range(start, end, step):
         print('iteration {}'.format(i))
 
-        target = read_pcd(f'../Data/data/000000000{str(i + 1)}.pcd')
+        target = read_pcd(f'../Data/data/00000000{i + 1:02}.pcd')
         base = iterative_closest_point(base, target, 35) #update base
 
     with open('../results/start_{}_end_{}_step_{}.pkl'.format(start, end, step),'wb') as f:
