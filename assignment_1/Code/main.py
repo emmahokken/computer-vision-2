@@ -6,6 +6,7 @@ import math
 import matplotlib.pyplot as plt
 import pickle as pkl
 import sys
+import argparse
 
 from data import read_pcd
 
@@ -69,54 +70,70 @@ def compute_R_t(base, target):
 
     return R, t
 
-def iterative_closest_point(base, target, iters):
-    #Todo. Maybe something to make them the same shape, if nessecay
-    all_rms = []
-    threshold = 0.0001
-    base_sub = sub_sampling(base, target, 'uniform')
+def iterative_closest_point(base, target):
+    all_RMS = []
+    base_sub = sub_sampling(base, target)
+
     # padded_target = np.zeros(base.shape)
     # padded_target[:target.shape[0], :target.shape[1]] = target
 
-    # Initialize rotation matrix R and translation vector t
-    # R = np.identity(base.shape[1])
-    # t = np.zeros(base.shape[1]).shape
-
-    # visualize_pcd(target)
-
     # Optimize R and t using the EM-algorithm
     RMS = math.inf
-    for iter in range(iters): #todo: maybe chance to a while loop.
+    for iter in range(ARGS.max_icp_iters): #todo: maybe chance to a while loop.
         ind, new_RMS = find_closest_points(base_sub, target) # E-step
 
-        #if new_RMS < RMS:
         RMS = new_RMS
+        all_RMS.append(RMS)
+        print(RMS)
+
         R, t = compute_R_t(base_sub, target[ind,:]) # M-step
         base_sub = np.dot(R, base.T).T - t.T
         base = np.dot(R, base.T).T - t.T
 
-        print(RMS)
-        all_rms.append(RMS)
-
-        if iter > 2 and abs(all_rms[-1] - all_rms[-2]) < threshold:
+        if iter > 2 and abs(all_RMS[-1] - all_RMS[-2]) < ARGS.icp_treshold:
             break
+
     return base
 
-def sub_sampling(base, target, method):
-    ind = np.random.randint(0, base.shape[0], target.shape[0])
+def sub_sampling(base, target):
+    if ARGS.sub_sampling_method == 'uniform':
+        ind = np.random.randint(0, base.shape[0], target.shape[0])
+
     return(base[ind])
 
-def merge_pcds(start, end, step):
-    base = read_pcd('../Data/data/0000000000.pcd')
+def merge_pcds():
+    base = read_pcd('../Data/data/0000000000.pcd') #load first base
 
-    for i in range(start, end, step):
+    for i in range(ARGS.start, ARGS.end, ARGS.step):
         print(f'iteration {i}')
-
-        target = read_pcd(f'../Data/data/00000000{i + 1:02}.pcd')
-        base = iterative_closest_point(base, target, 35) #update base
-        base = np.vstack((base, target))
+        target = read_pcd(f'../Data/data/00000000{i + 1:02}.pcd') #load target
+        base = iterative_closest_point(base, target) #update base
+        base = np.vstack((base, target)) #append target to updated base
 
     with open(f'../results/start_{start}_end_{end}_step_{step}.pkl','wb') as f:
         pkl.dump(base, f)
+
     visualize_pcd(base)
 
-merge_pcds(start=0, end=50, step=1)
+
+
+
+if __name__ == "__main__":
+    PARSER = argparse.ArgumentParser()
+    PARSER.add_argument('--start', default=0, type=int,
+                        help='first pcd')
+    PARSER.add_argument('--end', default=5, type=int,
+                        help='final pcd')
+    PARSER.add_argument('--step', default=1, type=int,
+                        help='step size between the pcds')
+    PARSER.add_argument('--sub_sampling_method', default='uniform', type=str,
+                        help='method for sub sampling pcd rows')
+
+    PARSER.add_argument('--max_icp_iters', default=50, type=int,
+                        help='max number of iterations for icp algorithm')
+    PARSER.add_argument('--icp_treshold', default=0.0001, type=float,
+                        help='teshold for early stopping the icp algorithm')
+
+    ARGS = PARSER.parse_args()
+
+    merge_pcds()
