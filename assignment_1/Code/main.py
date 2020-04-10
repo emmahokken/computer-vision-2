@@ -70,7 +70,7 @@ def compute_R_t(base, target):
 
     return R, t
 
-def iterative_closest_point(base, target):
+def iterative_closest_point(base, target, stacked_base):
     all_RMS = []
     base_sub = sub_sampling(base, target)
 
@@ -87,13 +87,13 @@ def iterative_closest_point(base, target):
         print(RMS)
 
         R, t = compute_R_t(base_sub, target[ind,:]) # M-step
-        base_sub = np.dot(R, base.T).T - t.T
-        base = np.dot(R, base.T).T - t.T
+        base_sub = np.dot(R, base_sub.T).T - t.T
+        stacked_base = np.dot(R, stacked_base.T).T - t.T
 
         if iter > 2 and abs(all_RMS[-1] - all_RMS[-2]) < ARGS.icp_treshold:
             break
 
-    return base
+    return stacked_base
 
 def sub_sampling(base, target):
     if ARGS.sub_sampling_method == 'uniform':
@@ -103,17 +103,20 @@ def sub_sampling(base, target):
 
 def merge_pcds():
     base = read_pcd('../Data/data/0000000000.pcd') #load first base
+    stacked_base = base
 
     for i in range(ARGS.start, ARGS.end, ARGS.step):
         print(f'iteration {i}')
         target = read_pcd(f'../Data/data/00000000{i + 1:02}.pcd') #load target
-        base = iterative_closest_point(base, target) #update base
-        base = np.vstack((base, target)) #append target to updated base
+        stacked_base = iterative_closest_point(base, target, stacked_base) #update base
+        stacked_base = np.vstack((stacked_base, target))
+        base = target
 
-    with open(f'../results/start_{start}_end_{end}_step_{step}.pkl','wb') as f:
-        pkl.dump(base, f)
+        # pkl.dump(base, open('../results/{}_ss_{}_{}-{}.pkl'
+        #             .format(ARGS.sub_sampling_method, ARGS.step,
+        #                     ARGS.start, i), "wb" ) )
 
-    visualize_pcd(base)
+    visualize_pcd(stacked_base)
 
 
 
@@ -122,17 +125,16 @@ if __name__ == "__main__":
     PARSER = argparse.ArgumentParser()
     PARSER.add_argument('--start', default=0, type=int,
                         help='first pcd')
-    PARSER.add_argument('--end', default=5, type=int,
+    PARSER.add_argument('--end', default=50, type=int,
                         help='final pcd')
     PARSER.add_argument('--step', default=1, type=int,
                         help='step size between the pcds')
     PARSER.add_argument('--sub_sampling_method', default='uniform', type=str,
                         help='method for sub sampling pcd rows')
-
-    PARSER.add_argument('--max_icp_iters', default=50, type=int,
+    PARSER.add_argument('--max_icp_iters', default=100, type=int,
                         help='max number of iterations for icp algorithm')
-    PARSER.add_argument('--icp_treshold', default=0.0001, type=float,
-                        help='teshold for early stopping the icp algorithm')
+    PARSER.add_argument('--icp_treshold', default=0.000001, type=float,
+                        help='treshold for early stopping icp algorithm')
 
     ARGS = PARSER.parse_args()
 
