@@ -119,4 +119,4 @@ def merge_pcds(start, end, step):
         pkl.dump(base, f)
     visualize_pcd(base)
 
-merge_pcds(start=0, end=20, step=1)
+merge_pcds(start=0, end=50, step=1)
