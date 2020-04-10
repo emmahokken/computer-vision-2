@@ -5,6 +5,7 @@ import open3d as o3d
 import math
 import matplotlib.pyplot as plt
 import pickle as pkl
+import sys
 
 from data import read_pcd
 
@@ -72,8 +73,9 @@ def iterative_closest_point(base, target, iters):
     #Todo. Maybe something to make them the same shape, if nessecay
     all_rms = []
     threshold = 0.0001
-    padded_target = np.zeros(base.shape)
-    padded_target[:target.shape[0], :target.shape[1]] = target
+    base_sub = sub_sampling(base, target, 'uniform')
+    # padded_target = np.zeros(base.shape)
+    # padded_target[:target.shape[0], :target.shape[1]] = target
 
     # Initialize rotation matrix R and translation vector t
     # R = np.identity(base.shape[1])
@@ -84,39 +86,37 @@ def iterative_closest_point(base, target, iters):
     # Optimize R and t using the EM-algorithm
     RMS = math.inf
     for iter in range(iters): #todo: maybe chance to a while loop.
-        ind, new_RMS = find_closest_points(base, padded_target) # E-step
+        ind, new_RMS = find_closest_points(base_sub, target) # E-step
 
         #if new_RMS < RMS:
         RMS = new_RMS
-        R, t = compute_R_t(base, padded_target[ind,:]) # M-step
-        base = np.dot(R, base.T).T - t.T # update the base point cloud
+        R, t = compute_R_t(base_sub, target[ind,:]) # M-step
+        base_sub = np.dot(R, base.T).T - t.T
+        base = np.dot(R, base.T).T - t.T
 
         print(RMS)
         all_rms.append(RMS)
 
         if iter > 2 and abs(all_rms[-1] - all_rms[-2]) < threshold:
             break
+    return base
 
-    stacked = np.vstack((base, target))
-    return stacked
-
-def sub_sample():
-    print('hello world')
+def sub_sampling(base, target, method):
+    ind = np.random.randint(0, base.shape[0], target.shape[0])
+    return(base[ind])
 
 def merge_pcds(start, end, step):
     base = read_pcd('../Data/data/0000000000.pcd')
 
     for i in range(start, end, step):
         print('iteration {}'.format(i))
-        target = read_pcd(f'../Data/data/000000000{str(i + 1)}.pcd')
 
-        # subsample base
-        sub_sample()
-
+        target = read_pcd(f'../Data/data/00000000{i + 1:02}.pcd')
         base = iterative_closest_point(base, target, 35) #update base
+        base = np.vstack((base, target))
 
     with open('../results/start_{}_end_{}_step_{}.pkl'.format(start, end, step),'wb') as f:
         pkl.dump(base, f)
     visualize_pcd(base)
 
-merge_pcds(start=0, end=1, step=1)
+merge_pcds(start=0, end=20, step=1)
