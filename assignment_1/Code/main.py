@@ -4,6 +4,7 @@ from scipy.spatial import KDTree
 import open3d as o3d
 import math
 import matplotlib.pyplot as plt
+import pickle as pkl
 
 from data import read_pcd
 
@@ -100,13 +101,17 @@ def iterative_closest_point(base, target, iters):
     return stacked
 
 
-base = read_pcd('../Data/data/0000000000.pcd')
-for i in range(0,4,2):
-    print('iteration {}'.format(i))
-    target = read_pcd(f'../Data/data/000000000{str(i + 1)}.pcd')
-    base = iterative_closest_point(base, target, 35)
+def merge_pcds(start, end, step):
+    base = read_pcd('../Data/data/0000000000.pcd')
 
+    for i in range(start, end, step):
+        print('iteration {}'.format(i))
 
+        target = read_pcd(f'../Data/data/000000000{str(i + 1)}.pcd')
+        base = iterative_closest_point(base, target, 35) #update base
 
+    with open('../results/start_{}_end_{}_step_{}.pkl'.format(start, end, step),'wb') as f:
+        pkl.dump(base, f)
+    visualize_pcd(base)
 
-visualize_pcd(base)
+merge_pcds(start=0, end=1, step=1)
