@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import pickle as pkl
 import sys
 import argparse
+import time
 
 from data import read_pcd
 
@@ -112,6 +113,9 @@ def merge_pcds():
     base = read_pcd('../Data/data/0000000000.pcd') #load first base
     stacked = base
     RMSs = []
+
+    start_time = time.time()
+
     for i in range(ARGS.start, ARGS.end, ARGS.step):
         print(f'iteration {i}')
         target = read_pcd(f'../Data/data/00000000{i + 1:02}.pcd') #load target
@@ -122,6 +126,8 @@ def merge_pcds():
         pkl.dump(base, open('../results/{}-{}_{}-{}-{}.pkl'
                     .format(ARGS.sub_sampling_method, ARGS.sub_sampling_r,
                             ARGS.start, i, ARGS.step), "wb"))
+
+    print(f'execution time: {time.time() - start_time} seconds')
 
     av_RMS = np.mean(RMSs)
     visualize_pcd(stacked)
