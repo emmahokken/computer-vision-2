@@ -112,16 +112,17 @@ def merge_pcds():
     base = read_pcd('../Data/data/0000000000.pcd') #load first base
     stacked = base
     RMSs = []
-    for i in range(ARGS.start, ARGS.end, ARGS.step):
+    for i in range(ARGS.start, ARGS.end, ARGS.step_size):
         print(f'iteration {i}')
         target = read_pcd(f'../Data/data/00000000{i + 1:02}.pcd') #load target
         stacked, RMS = iterative_closest_point(base, target, stacked) #update base
         stacked = np.vstack((stacked, target))
         base = target
         RMSs.append(RMS)
-        pkl.dump(base, open('../results/{}-{}_{}-{}-{}.pkl'
-                    .format(ARGS.sub_sampling_method, ARGS.sub_sampling_r,
-                            ARGS.start, i, ARGS.step), "wb"))
+
+    pkl.dump(base, open('../results/{}_{}_{}.pkl'
+                .format(ARGS.sub_sampling_method, ARGS.sub_sampling_r,
+                        ARGS.step_size), "wb"))
 
     av_RMS = np.mean(RMSs)
     visualize_pcd(stacked)
@@ -133,14 +134,14 @@ if __name__ == "__main__":
     PARSER = argparse.ArgumentParser()
     PARSER.add_argument('--start', default=0, type=int,
                         help='first pcd')
-    PARSER.add_argument('--end', default=3, type=int,
+    PARSER.add_argument('--end', default=10, type=int,
                         help='final pcd')
-    PARSER.add_argument('--step', default=1, type=int,
+    PARSER.add_argument('--step_size', default=1, type=int,
                         help='step size between the pcds')
 
     PARSER.add_argument('--sub_sampling_method', default='uniform', type=str,
                         help='method for sub sampling pcd rows, uniform or random')
-    PARSER.add_argument('--sub_sampling_r', default=1, type=float,
+    PARSER.add_argument('--sub_sampling_r', default=0.5, type=float,
                         help='ratio for sub sampling')
 
     PARSER.add_argument('--max_icp_iters', default=100, type=int,
