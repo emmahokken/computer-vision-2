@@ -70,12 +70,12 @@ def compute_R_t(base, target):
 
     return R, t
 
-def iterative_closest_point(base, target, stacked_base):
+def iterative_closest_point(base, target, stacked):
     all_RMS = []
-
 
     no_points = int(target.shape[0]*ARGS.sub_sampling_r)
     target  = sub_sampling(target, target[0:no_points])
+
     if ARGS.sub_sampling_method == 'uniform':
         base_sub = sub_sampling(base, target) # make base and target same shape
 
@@ -90,19 +90,19 @@ def iterative_closest_point(base, target, stacked_base):
         all_RMS.append(RMS)
         R, t = compute_R_t(base_sub, target[ind,:]) # M-step
 
+        base = np.dot(R, base.T).T - t.T
         if ARGS.sub_sampling_method == 'uniform':
             base_sub = np.dot(R, base_sub.T).T - t.T
-        if ARGS.sub_sampling_method == 'random':
-            base = np.dot(R, base_sub.T).T - t.T
 
-        stacked_base = np.dot(R, stacked_base.T).T - t.T
+        stacked = np.dot(R, stacked.T).T - t.T
 
         print(RMS)
 
         if iter > 2 and abs(all_RMS[-1] - all_RMS[-2]) < ARGS.icp_treshold:
             break
 
-    return stacked_base
+
+    return stacked, RMS
 
 def sub_sampling(in_array, out_array):
     ind = np.random.randint(0, in_array.shape[0], out_array.shape[0])
@@ -110,20 +110,21 @@ def sub_sampling(in_array, out_array):
 
 def merge_pcds():
     base = read_pcd('../Data/data/0000000000.pcd') #load first base
-    stacked_base = base
-
+    stacked = base
+    RMSs = []
     for i in range(ARGS.start, ARGS.end, ARGS.step):
         print(f'iteration {i}')
         target = read_pcd(f'../Data/data/00000000{i + 1:02}.pcd') #load target
-        stacked_base = iterative_closest_point(base, target, stacked_base) #update base
-        stacked_base = np.vstack((stacked_base, target))
+        stacked, RMS = iterative_closest_point(base, target, stacked) #update base
+        stacked = np.vstack((stacked, target))
         base = target
-
+        RMSs.append(RMS)
         pkl.dump(base, open('../results/{}-{}_{}-{}-{}.pkl'
                     .format(ARGS.sub_sampling_method, ARGS.sub_sampling_r,
-                            ARGS.start, i, ARGS.step), "wb" ) )
+                            ARGS.start, i, ARGS.step), "wb"))
 
-    visualize_pcd(stacked_base)
+    av_RMS = np.mean(RMSs)
+    visualize_pcd(stacked)
 
 
 
@@ -139,7 +140,7 @@ if __name__ == "__main__":
 
     PARSER.add_argument('--sub_sampling_method', default='uniform', type=str,
                         help='method for sub sampling pcd rows, uniform or random')
-    PARSER.add_argument('--sub_sampling_r', default=0.5, type=float,
+    PARSER.add_argument('--sub_sampling_r', default=1, type=float,
                         help='ratio for sub sampling')
 
     PARSER.add_argument('--max_icp_iters', default=100, type=int,
