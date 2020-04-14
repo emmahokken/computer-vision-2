@@ -1,7 +1,7 @@
 import numpy as np
 from tqdm import tqdm
 
-def read_pcd(fname):
+def read_pcd(fname, noise_threshold):
     '''
     Read PCD data
 
@@ -47,9 +47,22 @@ def read_pcd(fname):
 
 
     pcd = np.array(data)
-    pcd = pcd[pcd[:, -1] < 2]
+    pcd = pcd[pcd[:, -1] < noise_threshold]
     return(pcd)
 
+def read_normal_pcd(fname):
+    data = []
+    with open('../Data/data/0000000000_normal.pcd') as f:
+        
+        lines = f.readlines()
+        for i, l in enumerate(lines):
+            l = l.split(' ')
+            l[-1] = l[-1].strip('\n')
+            if i > 10:
+                l = [float(k) for k in l]
+                data.append(l[:-1])
+
+    return np.array(data)
 
 if __name__ == '__main__':
     print(read_pcd('../Data/data/0000000000.pcd'))
