@@ -72,34 +72,41 @@ def compute_R_t(base, target):
 
 def iterative_closest_point(base, target, stacked_base):
     all_RMS = []
-    base_sub = sub_sampling(base, target)
 
-    # padded_target = np.zeros(base.shape)
-    # padded_target[:target.shape[0], :target.shape[1]] = target
+
+    no_points = int(target.shape[0]*ARGS.sub_sampling_r)
+    target  = sub_sampling(target, target[0:no_points])
+    if ARGS.sub_sampling_method == 'uniform':
+        base_sub = sub_sampling(base, target) # make base and target same shape
 
     # Optimize R and t using the EM-algorithm
     RMS = math.inf
     for iter in range(ARGS.max_icp_iters): #todo: maybe chance to a while loop.
-        ind, new_RMS = find_closest_points(base_sub, target) # E-step
+        if ARGS.sub_sampling_method == 'random':
+            base_sub = sub_sampling(base, target)
 
+        ind, new_RMS = find_closest_points(base_sub, target) # E-step
         RMS = new_RMS
         all_RMS.append(RMS)
-        print(RMS)
-
         R, t = compute_R_t(base_sub, target[ind,:]) # M-step
-        base_sub = np.dot(R, base_sub.T).T - t.T
+
+        if ARGS.sub_sampling_method == 'uniform':
+            base_sub = np.dot(R, base_sub.T).T - t.T
+        if ARGS.sub_sampling_method == 'random':
+            base = np.dot(R, base_sub.T).T - t.T
+
         stacked_base = np.dot(R, stacked_base.T).T - t.T
+
+        print(RMS)
 
         if iter > 2 and abs(all_RMS[-1] - all_RMS[-2]) < ARGS.icp_treshold:
             break
 
     return stacked_base
 
-def sub_sampling(base, target):
-    if ARGS.sub_sampling_method == 'uniform':
-        ind = np.random.randint(0, base.shape[0], target.shape[0])
-
-    return(base[ind])
+def sub_sampling(in_array, out_array):
+    ind = np.random.randint(0, in_array.shape[0], out_array.shape[0])
+    return(in_array[ind])
 
 def merge_pcds():
     base = read_pcd('../Data/data/0000000000.pcd') #load first base
@@ -112,9 +119,9 @@ def merge_pcds():
         stacked_base = np.vstack((stacked_base, target))
         base = target
 
-        # pkl.dump(base, open('../results/{}_ss_{}_{}-{}.pkl'
-        #             .format(ARGS.sub_sampling_method, ARGS.step,
-        #                     ARGS.start, i), "wb" ) )
+        pkl.dump(base, open('../results/{}-{}_{}-{}-{}.pkl'
+                    .format(ARGS.sub_sampling_method, ARGS.sub_sampling_r,
+                            ARGS.start, i, ARGS.step), "wb" ) )
 
     visualize_pcd(stacked_base)
 
@@ -125,12 +132,16 @@ if __name__ == "__main__":
     PARSER = argparse.ArgumentParser()
     PARSER.add_argument('--start', default=0, type=int,
                         help='first pcd')
-    PARSER.add_argument('--end', default=50, type=int,
+    PARSER.add_argument('--end', default=3, type=int,
                         help='final pcd')
     PARSER.add_argument('--step', default=1, type=int,
                         help='step size between the pcds')
+
     PARSER.add_argument('--sub_sampling_method', default='uniform', type=str,
-                        help='method for sub sampling pcd rows')
+                        help='method for sub sampling pcd rows, uniform or random')
+    PARSER.add_argument('--sub_sampling_r', default=0.5, type=float,
+                        help='ratio for sub sampling')
+
     PARSER.add_argument('--max_icp_iters', default=100, type=int,
                         help='max number of iterations for icp algorithm')
     PARSER.add_argument('--icp_treshold', default=0.000001, type=float,
