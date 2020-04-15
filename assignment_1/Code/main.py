@@ -62,26 +62,47 @@ def compute_R_t(base, target):
     return R, t
 
 
+def sampling(in_array, no_points):
+    ind = np.random.randint(0, in_array.shape[0], no_points)
+    return(in_array[ind])
 
-def iterative_closest_point(base, target, stacked, norm):
+
+def normal_sampling(norm_pcd, base, no_points):
+    buckets = create_buchets(norm_pcd)
+    samps = []
+    keys = buckets.keys()
+
+    for buck in buckets.values():
+        samps.extend(np.random.choice(buck, int(no_points / len(keys))))
+
+    return base[samps]
+
+
+def iterative_closest_point(base, target, stacked, base_norm, target_norm):
     all_RMS = []
     iters = []
 
     no_points = int(target.shape[0]*ARGS.sampling_r)
-    target  = sampling(target, target[0:no_points])
-
-    if ARGS.sampling_method in ['none','uniform']:
-        base_sub = sampling(base, target) # make base and target same shape
 
     if ARGS.sampling_method == 'normal':
-        base_sub = normal_sampling(norm, base)
+        target = normal_sampling(target_norm, target, no_points)
+
+    else:
+        target  = sampling(target, no_points)
+
+    if ARGS.sampling_method in ['none','uniform']:
+        base_sub = sampling(base, no_points) # make base and target same shape
+
+
+    if ARGS.sampling_method == 'normal':
+        base_sub = normal_sampling(base_norm, base, no_points)
 
     # Optimize R and t using the EM-algorithm
     RMS = math.inf
     for iter in range(ARGS.max_icp_iters):
         iters.append(iter)
         if ARGS.sampling_method == 'random':
-            base_sub = sampling(base, target)
+            base_sub = sampling(base, no_points)
 
         ind, new_RMS = find_closest_points(base_sub, target) # E-step
         RMS = new_RMS
@@ -127,61 +148,48 @@ def add_noise(pcd, ratio):
 
 
 
-def sampling(in_array, out_array):
-    ind = np.random.randint(0, in_array.shape[0], out_array.shape[0])
-    return(in_array[ind])
 
 
-def normal_sampling(norm_pcd, base):
-    buckets = create_buchets(norm_pcd)
-    samps = []
-    keys = buckets.keys()
-    no_points = int(norm_pcd.shape[0]*ARGS.sampling_r)
-   
-    for buck in buckets.values():
-        samps.extend(np.random.choice(buck, int(no_points / len(keys))))
-        
-    return base[samps]
 
 def create_buchets(norm_pcd):
 
-    x = np.linspace(-1, 1, 36)
-    y = np.linspace(-1, 1, 36)
-    z = np.linspace(-1, 1, 36)
+    x = np.linspace(-1, 1, 5)
+    y = np.linspace(-1, 1, 5)
+    z = np.linspace(-1, 1, 5)
     table = defaultdict(list)
     for i, point in enumerate(norm_pcd):
         done = False
         if math.isnan(point[0]) or math.isnan(point[1]) or math.isnan(point[2]):
             table['nan'].append(i)
-            continue 
+            continue
         for xx in x:
             if done:
                 break
             for yy in y:
                 if done:
                     break
-                for zz in z: 
+                for zz in z:
                     if done:
                         break
                     if point[0] < xx and point[1] < yy and point[2] < zz:
                         table[f'x{xx}y{yy}z{zz}'].append(i)
                         done = True
-                        break 
-                    
-    print(table.keys())
-    exit()       
+                        break
 
     return table
 
 def test_icp():
-    Path("../results/icp_test").mkdir(parents=True, exist_ok=True)
-    # base = read_pcd('../data/data/0000000001.pcd', ARGS.noise_treshold)
-    # target = read_pcd('../data/data/0000000002.pcd', ARGS.noise_treshold)
-    base = loadmat('../Data/source.mat')['source'].T
-    target = loadmat('../Data/target.mat')['target'].T
+    Path("../results/icp_test/").mkdir(parents=True, exist_ok=True)
+    base, base_norm = read_pcd('../data/data/0000000000.pcd', ARGS.noise_treshold, '../data/data/0000000000_normal.pcd')
+    target, target_norm = read_pcd('../data/data/0000000000.pcd',  ARGS.noise_treshold, '../data/data/0000000000_normal.pcd')
+
+    #base = loadmat('../Data/source.mat')['source'].T
+    #target = loadmat('../Data/target.mat')['target'].T
     stacked = np.zeros((1,3)) # stacked matrix of zeros for testing the icp
 
-    sampling_methods = ['none', 'uniform', 'random']
+
+
+    sampling_methods = ['normal', 'none', 'uniform', 'random']
     for m in sampling_methods:
         print('--- {} ---'.format(m))
         ARGS.sampling_method = m
@@ -196,8 +204,9 @@ def test_icp():
         for r in noise_ratios:
             base_noisy = add_noise(base, r)
             target_noisy = add_noise(target, r)
-            iters, all_RMS = iterative_closest_point(base_noisy, target_noisy, stacked)
+            iters, all_RMS = iterative_closest_point(base_noisy, target_noisy, stacked, base_norm, target_norm)
             plt.plot(iters, all_RMS)
+
         plt.xlabel('iterations')
         plt.ylabel('RMS')
         plt.legend(noise_ratios, loc='upper right', title="percentage of added noise")
@@ -211,7 +220,7 @@ def test_icp():
         if m != 'none':
             for r in sampling_ratios:
                 ARGS.sampling_r = r
-                iters, all_RMS = iterative_closest_point(base, target, stacked)
+                iters, all_RMS = iterative_closest_point(base, target, stacked, norm, base_norm, target_norm)
                 plt.plot(iters, all_RMS)
 
             plt.xlabel('iterations')
@@ -222,7 +231,7 @@ def test_icp():
             plt.clf()
         else:
             ARGS.sampling_r = 1
-            iters, all_RMS = iterative_closest_point(base, target, stacked)
+            iters, all_RMS = iterative_closest_point(base, target, stacked, norm, base_norm, target_norm)
             plt.plot(iters, all_RMS)
             plt.xlabel('iterations')
             plt.ylabel('RMS')
@@ -241,7 +250,7 @@ def merge_pcds():
 
     for i in tqdm(range(ARGS.start, ARGS.end, ARGS.step_size)):
         target, target_norm = read_pcd(f'../data/data/00000000{i + 1:02}.pcd', ARGS.noise_treshold, f'../data/data/00000000{i + 1:02}_normal.pcd') #load target
-        stacked, RMS = iterative_closest_point(base, target, stacked, base_norm) #transform stacked
+        stacked, RMS = iterative_closest_point(base, target, stacked, base_norm, target_norm) #transform stacked
         stacked = np.vstack((stacked, target))
         base = target
         base_norm = target_norm
@@ -268,13 +277,8 @@ def merge_pcds():
         ARGS.sampling_method, ARGS.sampling_r,ARGS.step_size, av_RMS, seconds))
     plt.clf()
 
-    visualize_pcd(stacked)
-
-
-
-
-
-
+    if ARGS.visualize:
+        visualize_pcd(stacked)
 
 if __name__ == "__main__":
     PARSER = argparse.ArgumentParser()
@@ -282,15 +286,13 @@ if __name__ == "__main__":
                         help='first pcd')
     PARSER.add_argument('--end', default=99, type=int,
                         help='final pcd')
-    PARSER.add_argument('--step_size', default=1, type=int,
+    PARSER.add_argument('--step_size', default=1, type=int, # TO TEST: 1,2,4,10
                         help='step size between the pcds')
 
     PARSER.add_argument('--sampling_method', default='uniform', type=str,
                         help='method for sub sampling pcd rows', choices=['uniform', 'random', 'normal'])
     PARSER.add_argument('--sampling_r', default=0.5, type=float,
                         help='ratio for sub sampling')
-    PARSER.add_argument('--test_sampling_methods', default=['uniform','random','no'], type=list,
-                        help='list of methods to be tested')
 
     PARSER.add_argument('--max_icp_iters', default=100, type=int,
                         help='max number of iterations for icp algorithm')
@@ -301,6 +303,9 @@ if __name__ == "__main__":
 
     PARSER.add_argument('--noise_treshold', default=2, type=float,
                         help='keep points up to this distance')
+    PARSER.add_argument('--visualize', default=True, type=bool,
+                        help='whether to visualize the result')
+
 
     ARGS = PARSER.parse_args()
 
