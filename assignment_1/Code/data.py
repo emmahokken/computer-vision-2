@@ -1,7 +1,7 @@
 import numpy as np
 from tqdm import tqdm
 
-def read_pcd(fname, noise_threshold):
+def read_pcd(fname, noise_threshold, fname_normal=None):
     '''
     Read PCD data
 
@@ -22,37 +22,43 @@ def read_pcd(fname, noise_threshold):
 
     final = []
 
-    with open(fname, 'r') as f:
+    with open(fname, 'r') as f, open(fname_normal, 'r') as fn:
         lines = f.readlines()
-        for l in lines:
+        norm_lines = fn.readlines()
+        for i, l in enumerate(lines):
             # clean line
             l = l.split(' ')
+            ln = norm_lines[i].split(' ')
             l[-1] = l[-1].strip('\n')
+            ln[-1] = ln[-1].strip('\n')
 
-            #
-            if l[0].isalpha():
-                if l[0] == "VERSION":
-                    version = float(l[1])
-                elif l[0] == 'WIDTH':
-                    width = int(l[1])
-                elif l[0] == 'HEIGHT':
-                    height = int(l[1])
-                elif l[0] == 'POINTS':
-                    points = int(l[1])
+            # if l[0].isalpha():
+            #     if l[0] == "VERSION":
+            #         version = float(l[1])
+            #     elif l[0] == 'WIDTH':
+            #         width = int(l[1])
+            #     elif l[0] == 'HEIGHT':
+            #         height = int(l[1])
+            #     elif l[0] == 'POINTS':
+            #         points = int(l[1])
 
-            elif l[0] != '#':
+            if not l[0].isalpha() and not l[0] == '#':
                 l = [float(i) for i in l]
+                ln = [float(j) for j in ln]
                 data.append(l[:-1])
+                data[-1].extend(ln[:-1])
 
 
 
     pcd = np.array(data)
-    pcd = pcd[pcd[:, -1] < noise_threshold]
-    return(pcd)
+    pcd = pcd[pcd[:, 2] < noise_threshold]
+    norm = pcd[:, 3:]
+    pcd = pcd[:, :3]
+    return pcd, norm
 
 def read_normal_pcd(fname):
     data = []
-    with open('../Data/data/0000000000_normal.pcd') as f:
+    with open(fname) as f:
         
         lines = f.readlines()
         for i, l in enumerate(lines):
