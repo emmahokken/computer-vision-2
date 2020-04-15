@@ -145,16 +145,31 @@ def normal_sampling(norm_pcd, base):
 
 def create_buchets(norm_pcd):
 
-    buckets = np.linspace(-1, 1, 36)
+    x = np.linspace(-1, 1, 36)
+    y = np.linspace(-1, 1, 36)
+    z = np.linspace(-1, 1, 36)
     table = defaultdict(list)
     for i, point in enumerate(norm_pcd):
-        for buck in buckets:
-            if math.isnan(point[0]):
-                table['nan'].append(i)
+        done = False
+        if math.isnan(point[0]) or math.isnan(point[1]) or math.isnan(point[2]):
+            table['nan'].append(i)
+            continue 
+        for xx in x:
+            if done:
                 break
-            if point.mean() < buck:
-                table[buck].append(i)
-                break 
+            for yy in y:
+                if done:
+                    break
+                for zz in z: 
+                    if done:
+                        break
+                    if point[0] < xx and point[1] < yy and point[2] < zz:
+                        table[f'x{xx}y{yy}z{zz}'].append(i)
+                        done = True
+                        break 
+                    
+    print(table.keys())
+    exit()       
 
     return table
 
