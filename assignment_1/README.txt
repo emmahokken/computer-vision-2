@@ -1,9 +1,11 @@
+This is assignment 1 for Computer Vision 2. We have chosen to implement this assignment in python 3.7, so this is a requirement. 
+
 How to run the code:
 
 
-First, run pip3 install -r requirements.txt to install necessary dependencies. 
+First, run pip install -r requirements.txt to install necessary dependencies. 
 
-Them, run the program by running python main.py. Default parameters are set for running the ICP algorithm, without merging. Full list of parameters can be found below
+Them, run the program by running python main.py. Default parameters are set for running the ICP algorithm, without merging. Full list of parameters can be found below. 
 
 -h, --help	-->   	show this help message and exit
 --merge        	-->	whether to merge the pcds
@@ -19,3 +21,13 @@ Them, run the program by running python main.py. Default parameters are set for 
 --visualize 	--> 	whether to visualize the result
 --merge_method	-->	{3.1,3.2} method for merging, always use uniform sampling
 --dist_measure	-->	{nn,kd} method for measuring distance, nearest neighbour or kd-trees
+
+
+If one wishes to merge images the code should be run as follows.
+
+python Code/main.py --merge True. 
+
+
+If one wishes to only run the ice algorithm on for example the first two images, the code should be run as follows 
+
+python Code/main.py --start 0 --end 1
