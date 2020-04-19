@@ -30,16 +30,25 @@ def visualize_pcd(pcd_array):
     pcd_load = o3d.io.read_point_cloud("sync.ply")
     o3d.visualization.draw_geometries([pcd_load])
 
-# EMMA. I have two methods here. Do you have a way to check which one is fastest?
 def find_closest_points(base, target):
-    # Nearest neighbors method
-    nnb_model = NearestNeighbors(n_neighbors=1).fit(target)
-    dis, ind = nnb_model.kneighbors(base, return_distance=True)
+    if ARGS.dist_measure == 'nn':
+        # Nearest neighbors method
+        nnb_model = NearestNeighbors(n_neighbors=1).fit(target)
+        dis, ind = nnb_model.kneighbors(base, return_distance=True)
 
-    dis = dis.squeeze()
-    ind = list(ind.squeeze())
+        dis = dis.squeeze()
+        ind = list(ind.squeeze())
+
+
+    elif ARGS.dist_measure == 'kd':
+        # Tree method 
+        kdt_model = KDTree(target)
+        dis, ind = kdt_model.query(base)
+        dis = list(dis)
+        ind = list(ind)
 
     RMS = np.mean(dis)
+
     return ind, RMS
 
 
@@ -160,7 +169,6 @@ def create_buchets(norm_pcd):
     for i, point in enumerate(norm_pcd):
         done = False
         if math.isnan(point[0]) or math.isnan(point[1]) or math.isnan(point[2]):
-            table['nan'].append(i)
             continue
         for xx in x:
             if done:
@@ -181,7 +189,7 @@ def create_buchets(norm_pcd):
 def test_icp():
     Path("../results/icp_test/").mkdir(parents=True, exist_ok=True)
     base, base_norm = read_pcd('../data/data/0000000000.pcd', ARGS.noise_treshold, '../data/data/0000000000_normal.pcd')
-    target, target_norm = read_pcd('../data/data/0000000000.pcd',  ARGS.noise_treshold, '../data/data/0000000000_normal.pcd')
+    target, target_norm = read_pcd('../data/data/0000000001.pcd',  ARGS.noise_treshold, '../data/data/0000000001_normal.pcd')
 
     #base = loadmat('../Data/source.mat')['source'].T
     #target = loadmat('../Data/target.mat')['target'].T
@@ -203,6 +211,7 @@ def test_icp():
         noise_ratios = [0,0.25,0.5,0.75,1]
         for r in noise_ratios:
             base_noisy = add_noise(base, r)
+            #visualize_pcd(base_noisy)
             target_noisy = add_noise(target, r)
             iters, all_RMS = iterative_closest_point(base_noisy, target_noisy, stacked, base_norm, target_norm)
             plt.plot(iters, all_RMS)
@@ -214,13 +223,14 @@ def test_icp():
         plt.savefig(dir)
         plt.clf()
 
+
         # Test sampling ratios
         Path("../results/icp_test/sampling_ratios").mkdir(parents=True, exist_ok=True)
         sampling_ratios = [1, 0.75,0.5,0.25,0.1]
         if m != 'none':
             for r in sampling_ratios:
                 ARGS.sampling_r = r
-                iters, all_RMS = iterative_closest_point(base, target, stacked, norm, base_norm, target_norm)
+                iters, all_RMS = iterative_closest_point(base, target, stacked, base_norm, target_norm)
                 plt.plot(iters, all_RMS)
 
             plt.xlabel('iterations')
@@ -231,7 +241,7 @@ def test_icp():
             plt.clf()
         else:
             ARGS.sampling_r = 1
-            iters, all_RMS = iterative_closest_point(base, target, stacked, norm, base_norm, target_norm)
+            iters, all_RMS = iterative_closest_point(base, target, stacked, base_norm, target_norm)
             plt.plot(iters, all_RMS)
             plt.xlabel('iterations')
             plt.ylabel('RMS')
@@ -240,20 +250,74 @@ def test_icp():
             plt.clf()
 
 
+
+
+
+def iterative_closest_point_alt(base, target):
+    all_RMS = []
+    iters = []
+    no_points = int(target.shape[0]*ARGS.sampling_r)
+    target  = sampling(target, no_points)
+    #base_sub = sampling(base, no_points) # make base and target same shape
+
+    # Optimize R and t using the EM-algorithm
+    RMS = math.inf
+    for iter in range(ARGS.max_icp_iters):
+        iters.append(iter)
+        ind, new_RMS = find_closest_points(base, target) # E-step
+        RMS = new_RMS
+        all_RMS.append(RMS)
+        R, t = compute_R_t(base, target[ind,:]) # M-step
+
+
+        #base = np.dot(R, base.T).T - t.T
+        #base_sub = np.dot(R, base_sub.T).T - t.T
+        base = np.dot(R, base.T).T - t.T
+
+        if iter > ARGS.icp_treshold_w:
+            std = np.std(all_RMS[-ARGS.icp_treshold_w:])
+            if (std < ARGS.icp_treshold):
+                break
+
+    return base, RMS
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 def merge_pcds():
     Path("../results/merge_pcds").mkdir(parents=True, exist_ok=True)
-    base, base_norm = read_pcd(f'../data/data/00000000{ARGS.start:02}.pcd', ARGS.noise_treshold, f'../data/data/00000000{ARGS.start:02}_normal.pcd') #load first base
+    base, base_norm = read_pcd(f'../data/data/00000000{ARGS.start:02}.pcd', ARGS.noise_treshold, f'../data/data/00000000{ARGS.start:02}_normal.pcd')
+
     stacked = base
     RMSs = []
     iters = []
     start_time = time.time()
 
     for i in tqdm(range(ARGS.start, ARGS.end, ARGS.step_size)):
-        target, target_norm = read_pcd(f'../data/data/00000000{i + 1:02}.pcd', ARGS.noise_treshold, f'../data/data/00000000{i + 1:02}_normal.pcd') #load target
-        stacked, RMS = iterative_closest_point(base, target, stacked, base_norm, target_norm) #transform stacked
-        stacked = np.vstack((stacked, target))
-        base = target
-        base_norm = target_norm
+        target, target_norm = read_pcd(f'../data/data/00000000{i + 1:02}.pcd', ARGS.noise_treshold, f'../data/data/00000000{i + 1:02}_normal.pcd')
+
+        if ARGS.merge_method == '3.1':
+            stacked, RMS = iterative_closest_point(base, target, stacked, base_norm, target_norm) #transform stacked
+            #print(RMS)
+            stacked = np.vstack((stacked, target))
+            base = target
+            base_norm = target_norm
+
+        else:
+            stacked, RMS = iterative_closest_point_alt(stacked, target) #transform stacked
+            stacked = np.vstack((stacked, target))
+
         RMSs.append(RMS)
         iters.append(i)
 
@@ -282,6 +346,8 @@ def merge_pcds():
 
 if __name__ == "__main__":
     PARSER = argparse.ArgumentParser()
+
+    # PCD files
     PARSER.add_argument('--start', default=0, type=int,
                         help='first pcd')
     PARSER.add_argument('--end', default=99, type=int,
@@ -289,11 +355,15 @@ if __name__ == "__main__":
     PARSER.add_argument('--step_size', default=1, type=int, # TO TEST: 1,2,4,10
                         help='step size between the pcds')
 
+
+    # Point selection
     PARSER.add_argument('--sampling_method', default='uniform', type=str,
                         help='method for sub sampling pcd rows', choices=['uniform', 'random', 'normal'])
-    PARSER.add_argument('--sampling_r', default=0.5, type=float,
+    PARSER.add_argument('--sampling_r', default=1, type=float,
                         help='ratio for sub sampling')
 
+
+    # ICP algorithm parameters
     PARSER.add_argument('--max_icp_iters', default=100, type=int,
                         help='max number of iterations for icp algorithm')
     PARSER.add_argument('--icp_treshold', default=0.00001, type=float,
@@ -301,10 +371,21 @@ if __name__ == "__main__":
     PARSER.add_argument('--icp_treshold_w', default=10, type=int,
                         help='window for treshold for icp algorithm')
 
+    # Noise 
     PARSER.add_argument('--noise_treshold', default=2, type=float,
                         help='keep points up to this distance')
+    
+    # Visualisation of pcd
     PARSER.add_argument('--visualize', default=True, type=bool,
                         help='whether to visualize the result')
+
+    # Merging
+    PARSER.add_argument('--merge_method', default='3.1', type=str,
+                        help='Method for merging, always use uniform sampling', choices=['3.1','3.2'])
+
+    # Distance measure
+    PARSER.add_argument('--dist_measure', default='nn', type=str,
+                        help='Method for measuring distance, nearest neighbour or kd trees', choices=['nn','kd'])
 
 
     ARGS = PARSER.parse_args()
@@ -312,5 +393,5 @@ if __name__ == "__main__":
 
 
 
-# test_icp()
+#test_icp()
 merge_pcds()
