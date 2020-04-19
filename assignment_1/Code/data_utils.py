@@ -1,6 +1,7 @@
 import numpy as np
 
 def read_pcd(fname, noise_threshold, fname_normal=None):
+    """ read in pcd files """
     data = []
     version = 0
     width = 0
@@ -28,16 +29,3 @@ def read_pcd(fname, noise_threshold, fname_normal=None):
     pcd = pcd[:, :3]
     return pcd, norm
 
-def read_normal_pcd(fname):
-    data = []
-    with open(fname) as f:
-
-        lines = f.readlines()
-        for i, l in enumerate(lines):
-            l = l.split(' ')
-            l[-1] = l[-1].strip('\n')
-            if i > 10:
-                l = [float(k) for k in l]
-                data.append(l[:-1])
-
-    return np.array(data)

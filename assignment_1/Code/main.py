@@ -213,8 +213,8 @@ def test_icp():
     tolerance to noise.
     '''
     Path("results/icp_test/").mkdir(parents=True, exist_ok=True)
-    base, base_norm = read_pcd('data/data/0000000000.pcd', ARGS.noise_treshold, 'data/data/0000000000_normal.pcd')
-    target, target_norm = read_pcd('data/data/0000000001.pcd',  ARGS.noise_treshold, 'data/data/0000000001_normal.pcd')
+    base, base_norm = read_pcd('Data/data/0000000000.pcd', ARGS.noise_treshold, 'Data/data/0000000000_normal.pcd')
+    target, target_norm = read_pcd('Data/data/0000000001.pcd',  ARGS.noise_treshold, 'Data/data/0000000001_normal.pcd')
     stacked = np.zeros((1,3)) # stacked matrix of zeros, required as an argument for running the icp algorithm.
     sampling_methods = ['normal', 'none', 'uniform', 'random']
 
@@ -250,14 +250,14 @@ def merge_pcds():
     each point cloud first to the correct camera angle.
     '''
     Path("results/merge_pcds").mkdir(parents=True, exist_ok=True)
-    base, base_norm = read_pcd(f'data/data/00000000{ARGS.start:02}.pcd', ARGS.noise_treshold, f'data/data/00000000{ARGS.start:02}_normal.pcd')
+    base, base_norm = read_pcd(f'Data/data/00000000{ARGS.start:02}.pcd', ARGS.noise_treshold, f'Data/data/00000000{ARGS.start:02}_normal.pcd')
     stacked = base
     RMSs = []
     iters = []
     start_time = time.time()
 
     for i in tqdm(range(ARGS.start, ARGS.end, ARGS.step_size)):
-        target, target_norm = read_pcd(f'data/data/00000000{i + 1:02}.pcd', ARGS.noise_treshold, f'data/data/00000000{i + 1:02}_normal.pcd')
+        target, target_norm = read_pcd(f'Data/data/00000000{i + 1:02}.pcd', ARGS.noise_treshold, f'Data/data/00000000{i + 1:02}_normal.pcd')
         if ARGS.merge_method == '3.1':
             stacked, RMS = iterative_closest_point(base, target, stacked, base_norm, target_norm) #transform stacked
             stacked = np.vstack((stacked, target))

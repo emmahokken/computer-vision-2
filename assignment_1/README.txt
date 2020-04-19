@@ -1,11 +1,10 @@
-This is assignment 1 for Computer Vision 2. We have chosen to implement this assignment in python 3.7, so this is a requirement. 
+This is assignment 1 for Computer Vision 2. We have chosen to implement this assignment in python 3.7, so this is a requirement. Our code can be found in the Code folder.
 
 How to run the code:
 
-
 First, run pip install -r requirements.txt to install necessary dependencies. 
 
-Them, run the program by running python main.py. Default parameters are set for running the ICP algorithm, without merging. Full list of parameters can be found below. 
+Them, run the program by running "python Code/main.py".  Default parameters are set for running the ICP algorithm, without merging. Full list of parameters can be found below. 
 
 -h, --help	-->   	show this help message and exit
 --merge        	-->	whether to merge the pcds
@@ -25,9 +24,9 @@ Them, run the program by running python main.py. Default parameters are set for 
 
 If one wishes to merge images the code should be run as follows.
 
-python Code/main.py --merge True. 
+python Code/main.py --merge True 
 
 
-If one wishes to only run the ice algorithm on for example the first two images, the code should be run as follows 
+If one wishes to only run the ice algorithm on for example the first two images, the code should be run as follows. This code is always run with Data/data/0000000000.pcd and Data/data/0000000001.pcd. 
 
-python Code/main.py --start 0 --end 1
+python Code/main.py
