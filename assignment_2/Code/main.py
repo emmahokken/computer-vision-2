@@ -2,6 +2,7 @@ import numpy as np
 import cv2 as cv
 from matplotlib import pyplot as plt
 from sklearn import linear_model
+import sys
 
 GOOD_MATCH_PERCENT = 0.15
 
@@ -9,12 +10,11 @@ def zeroes(size):
     return np.zeros(size)
 
 def main():
-
     # read image and make it greyscale
-    img1 = cv.imread('Data/House/frame00000001.png')
+    img1 = cv.imread('../Data/House/frame00000001.png')
     grey1 = cv.cvtColor(img1, cv.COLOR_RGB2GRAY)
 
-    img2 = cv.imread('Data/House/frame00000035.png')
+    img2 = cv.imread('../Data/House/frame00000035.png')
     grey2 = cv.cvtColor(img2, cv.COLOR_RGB2GRAY)
 
     # perform sift to get keypoints and descriptors
@@ -92,8 +92,6 @@ def main():
     plt.show()
 
 
-
-
 def drawlines(img1,img2,lines,pts1,pts2):
     ''' img1 - image on which we draw the epilines for the points in img2
         lines - corresponding epilines '''
@@ -141,8 +139,8 @@ def chaining():
     for img_number in range(1,49):
         print(f'Image {img_number} and {img_number + 1}')
 
-        img1 = cv.imread(f'Data/House/frame000000{img_number:02}.png')
-        img2 = cv.imread(f'Data/House/frame000000{img_number + 1:02}.png')
+        img1 = cv.imread(f'../Data/House/frame000000{img_number:02}.png')
+        img2 = cv.imread(f'../Data/House/frame000000{img_number + 1:02}.png')
 
         grey1 = cv.cvtColor(img1, cv.COLOR_RGB2GRAY)
         grey2 = cv.cvtColor(img2, cv.COLOR_RGB2GRAY)
@@ -195,8 +193,8 @@ def chaining():
 
     print('Image 49 and 1')
     # do this all again for last two images
-    img1 = cv.imread('Data/House/frame00000049.png')
-    img2 = cv.imread('Data/House/frame00000001.png')
+    img1 = cv.imread('../Data/House/frame00000049.png')
+    img2 = cv.imread('../Data/House/frame00000001.png')
 
     # addition += 1
     # perform sift to get keypoints and descriptors
@@ -245,4 +243,4 @@ def chaining():
     plt.show()
 
 if __name__ == "__main__":
-    chaining()
+    main()
