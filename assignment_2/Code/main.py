@@ -115,32 +115,31 @@ def construct_A(p, p_a,):
     return(A)
 
 def chaining():
+    with open('PointViewMatrix.txt', 'r') as f:
+        bigboi = np.zeros((205, 215))
+        for i, line in enumerate(f):
+            print(i)
+            line = np.array(line.split(' '))
+            print(line.shape)
+            bigboi[i, :] = line.squeeze()
+            # break
 
+        plt.imshow(bigboi)
+        plt.show()
 
-    # with open('PointViewMatrix.txt', 'r') as f:
-    #     bigboi = np.array((1000, 1000))
-    #     for i, line in enumerate(f):
-    #         print(i)
-    #         line = np.array(line.split(' '))
-    #         print(line.shape)
-    #         bigboi[i, :] = line
-    #         break
-    #
-    #     plt.imshow(bigboi)
-    #
-    # exit()
     # this is very ugly and 6000 is a very random number but it works
     pvm = zeroes((100, 6000))
 
     addition = 0
     index = {}
     feature_count = 0
+
     # iterate over all images, compare 1-2, 2-3, 48-49, 49-1
     for img_number in range(1,49):
         print(f'Image {img_number} and {img_number + 1}')
 
-        img1 = cv.imread(f'../Data/House/frame000000{img_number:02}.png')
-        img2 = cv.imread(f'../Data/House/frame000000{img_number + 1:02}.png')
+        img1 = cv.imread(f'Data/House/frame000000{img_number:02}.png')
+        img2 = cv.imread(f'Data/House/frame000000{img_number + 1:02}.png')
 
         grey1 = cv.cvtColor(img1, cv.COLOR_RGB2GRAY)
         grey2 = cv.cvtColor(img2, cv.COLOR_RGB2GRAY)
@@ -184,19 +183,17 @@ def chaining():
             z[img_number + addition + 1] = points2[-1][1] # y
             z[img_number + addition + 2 ] = points2[-1][0]
             z[img_number + addition + 3] = points2[-1][1]
+
             # put column in proper place in array
             pvm[:, ind] = z
-
-            # print(img_number + addition, img_number + addition + 1, img_number + addition + 2, img_number + addition + 3)
 
         addition += 1
 
     print('Image 49 and 1')
     # do this all again for last two images
-    img1 = cv.imread('../Data/House/frame00000049.png')
-    img2 = cv.imread('../Data/House/frame00000001.png')
+    img1 = cv.imread('Data/House/frame00000049.png')
+    img2 = cv.imread('Data/House/frame00000001.png')
 
-    # addition += 1
     # perform sift to get keypoints and descriptors
     sift = cv.xfeatures2d.SIFT_create()
     kp1, des1 = sift.detectAndCompute(grey1, None)
@@ -218,7 +215,6 @@ def chaining():
         points1.append(kp1[match.queryIdx].pt)
         points2.append(kp2[match.trainIdx].pt)
 
-
         index[match.trainIdx] = feature_count
         feature_count += 1
         try:
@@ -239,8 +235,9 @@ def chaining():
     # remove excess zeroes
     pvm = pvm[:, :max(index.values())]
 
-    plt.imshow(pvm, cmap='gray')
+    norm = np.where(pvm > 0, 1, 0)
+    plt.imshow(norm)
     plt.show()
 
 if __name__ == "__main__":
-    main()
+    chaining()
