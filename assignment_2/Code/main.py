@@ -5,6 +5,8 @@ from sklearn import linear_model
 
 GOOD_MATCH_PERCENT = 0.15
 
+def zeroes(size):
+    return np.zeros(size)
 
 def main():
 
@@ -114,7 +116,7 @@ def construct_A(p, p_a,):
                   p[:,1]*p_a[:,1], p[:,1], p_a[:,0], p_a[:,1], np.ones((len(p)))]).T
     return(A)
 
-def compute_points(img1, img2):
+def compute_matches(img1, img2):
     grey1 = cv.cvtColor(img1, cv.COLOR_RGB2GRAY)
     grey2 = cv.cvtColor(img2, cv.COLOR_RGB2GRAY)
 
@@ -132,34 +134,65 @@ def compute_points(img1, img2):
     num_good_matches = int(len(matches) * GOOD_MATCH_PERCENT)
     matches = matches[:num_good_matches]
 
-    # Extract location of good matches
-    points1 = []
-    points2 = []
-
-    for i, match in enumerate(matches):
-        points1.append(kp1[match.queryIdx].pt)
-        points2.append(kp2[match.trainIdx].pt)
-        # print(kp1[match.queryIdx].class_id)
-        # print(kp2[match.trainIdx].class_id)
-        # exit()
-
-    return points1, points2
+    return matches
 
 def chaining():
-    pvm = np.zeros((49, 1), dtype=(float, 2))
+    pvm = np.zeros((50, 6000, 2))
 
+    index = {}
+    feature_count = 0
     # iterate over all images, compare 1-2, 2-3, 48-49, 49-1
-    for i in range(1,50):
-        img1 = cv.imread(f'Data/House/frame000000{i:02}.png')
-        img2 = cv.imread(f'Data/House/frame000000{i + 1:02}.png')
+    for img_number in range(1,50):
+        img1 = cv.imread(f'Data/House/frame000000{img_number:02}.png')
+        img2 = cv.imread(f'Data/House/frame000000{img_number + 1:02}.png')
 
-        # for each point found, add column to matrix
-        points1, points2 = compute_points(img1, img2)
-        temp = np.zeros((49, len(points1)), dtype=(float, 2))
-        temp[i - 1, :] = np.array(points1, dtype=(float, 2))
-        temp[i, :] = np.array(points2, dtype=(float, 2))
+        grey1 = cv.cvtColor(img1, cv.COLOR_RGB2GRAY)
+        grey2 = cv.cvtColor(img2, cv.COLOR_RGB2GRAY)
 
-        pvm = np.hstack((pvm, temp))
+        # perform sift to get keypoints and descriptors
+        sift = cv.xfeatures2d.SIFT_create()
+        kp1, des1 = sift.detectAndCompute(grey1, None)
+        kp2, des2 = sift.detectAndCompute(grey2, None)
+
+        # match descriptors (using L1 norm now, because it's the only one that worked...)
+        matcher = cv.BFMatcher(cv.NORM_L1, crossCheck=False)
+        matches = matcher.match(des1, des2)
+
+        # only keep good matcjes (why? idk)
+        matches.sort(key=lambda x: x.distance, reverse=False)
+        num_good_matches = int(len(matches) * GOOD_MATCH_PERCENT)
+        matches = matches[:num_good_matches]
+
+        points1 = []
+        points2 = []
+
+        for i, match in enumerate(matches):
+            points1.append(kp1[match.queryIdx].pt)
+            points2.append(kp2[match.trainIdx].pt)
+            index[match.trainIdx] = feature_count
+            feature_count += 1
+            try:
+                print('query index!')
+                ind = index[match.queryIdx]
+            except KeyError:
+                print('train index :(')
+                ind = index[match.trainIdx]
+
+            # create new column
+            z = zeroes((50, 2))
+            z[img_number] = points1[-1]
+            z[img_number + 1] = points2[-1]
+
+            # put column in proper place in array
+            pvm[:, ind, :] = z
+
+
+
+        # temp = np.zeros((49, len(points1)), dtype=(float, 2))
+        # temp[i - 1, :] = np.array(points1, dtype=(float, 2))
+        # temp[i, :] = np.array(points2, dtype=(float, 2))
+        #
+        # pvm = np.hstack((pvm, temp))
 
     # TODO: do final iteration from 49 to 1
     img1 = cv.imread('Data/House/frame00000049.png')
