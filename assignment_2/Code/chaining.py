@@ -5,8 +5,6 @@ from matplotlib import pyplot as plt
 import sys
 import pandas as pd
 
-GOOD_MATCH_PERCENT = 0.25
-
 def zeroes(size):
     return np.zeros(size)
 
@@ -29,40 +27,17 @@ def chaining():
         p = []
         p_a = []
 
+        # iterate over matches and create pvm
         for i, match in enumerate(matches):
             p.append(kp1[match.queryIdx].pt)
             p_a.append(kp2[match.trainIdx].pt)
 
-            # very first iteration
+            # very first iteration, create first column
             if pvm.shape[1] == 0:
                 feature_point = f'{i + 1}'
-                pvm.ix[f'x{img_number}', feature_point] = p[-1][0]
-                pvm.ix[f'y{img_number}', feature_point] = p[-1][1]
-                pvm.ix[f'x{img_number2}', feature_point] = p_a[-1][0]
-                pvm.ix[f'y{img_number2}', feature_point] = p_a[-1][1]
+                pvm = set_points(pvm, img_number, img_number2, feature_point, p, p_a)
             else:
-                # try:
-                #     pvm_pandas.loc[f'x{img_number}']
-                # except:
-                #     feature_point = f'{pvm_pandas.shape[1] + 1}'
-                #     pvm_pandas.ix[f'x{img_number2}', feature_point] = points2[-1][0]
-                #     pvm_pandas.ix[f'y{img_number2}', feature_point] = points2[-1][1]
-
-                found = False
-                for feature_point, point in enumerate(zip(pvm.loc[f'x{img_number}'], pvm.loc[f'y{img_number}'])):
-                    if nearby(p[-1], point):
-                        found = True
-                        pvm.ix[f'x{img_number2}', feature_point] = p_a[-1][0]
-                        pvm.ix[f'y{img_number2}', feature_point] = p_a[-1][1]
-                        break
-
-                # when no new points are found, add a new column
-                if not found:
-                    feature_point = f'{pvm.shape[1] + 1}'
-                    pvm.ix[f'x{img_number}', feature_point] = p[-1][0]
-                    pvm.ix[f'y{img_number}', feature_point] = p[-1][1]
-                    pvm.ix[f'x{img_number2}', feature_point] = p_a[-1][0]
-                    pvm.ix[f'y{img_number2}', feature_point] = p_a[-1][1]
+                pvm = get_pvm(pvm, img_number, img_number2, p, p_a)
 
     print(pvm.shape)
 
@@ -71,13 +46,37 @@ def chaining():
     plt.show()
     norm = np.where(pvm > 0, 1, 0)
 
-    plt.imshow(norm, aspect='equal')
+    plt.imshow(norm, aspect='auto')
     plt.show()
     return pvm, norm
 
+def get_pvm(pvm, img_number, img_number2, p, p_a):
+    # very first iteration
 
+    found = False
+    for feature_point, point in enumerate(zip(pvm.loc[f'x{img_number}'], pvm.loc[f'y{img_number}'])):
+        if nearby(p[-1], point):
+            found = True
+            pvm.ix[f'x{img_number2}', feature_point] = p_a[-1][0]
+            pvm.ix[f'y{img_number2}', feature_point] = p_a[-1][1]
+            break
 
-def get_matches(img_number, img_number2):
+    # when no new points are found, add a new column
+    if not found:
+        feature_point = f'{pvm.shape[1] + 1}'
+        pvm = set_points(pvm, img_number, img_number2, feature_point, p, p_a)
+
+    return pvm
+
+def set_points(pvm, img_number, img_number2, feature_point, p, p_a):
+    pvm.ix[f'x{img_number}', feature_point] = p[-1][0]
+    pvm.ix[f'y{img_number}', feature_point] = p[-1][1]
+    pvm.ix[f'x{img_number2}', feature_point] = p_a[-1][0]
+    pvm.ix[f'y{img_number2}', feature_point] = p_a[-1][1]
+
+    return pvm
+
+def get_matches(img_number, img_number2, t=0.25):
     img1 = cv.imread(f'Data/House/frame000000{img_number:02}.png')
     img2 = cv.imread(f'Data/House/frame000000{img_number2:02}.png')
 
@@ -90,17 +89,17 @@ def get_matches(img_number, img_number2):
     kp2, des2 = sift.detectAndCompute(grey2, None)
 
     # match descriptors (using L1 norm now, because it's the only one that worked...)
-    matcher = cv.BFMatcher(cv.NORM_L1, crossCheck=False)
+    matcher = cv.BFMatcher(cv.NORM_L1)
     matches = matcher.match(des1, des2)
 
     # only keep good matcjes (why? idk)
-    matches.sort(key=lambda x: x.distance, reverse=False)
-    num_good_matches = int(len(matches) * GOOD_MATCH_PERCENT)
+    matches.sort(key=lambda x: x.distance)
+    num_good_matches = int(len(matches) * t)
     matches = matches[:num_good_matches]
 
     return matches, kp1, kp2
 
-def nearby(points1, points2, t=5):
+def nearby(points1, points2, t=10):
     x1, y1 = points1
     x2, y2 = points2
     close = x1 - t <= x2 <= x1 + t and y1 - t <= y2 <= y1 + t
@@ -117,7 +116,7 @@ def test_pvm():
             bigboi[i, :] = line.squeeze()
             # break
 
-        plt.imshow(bigboi)
+        plt.imshow(bigboi, aspect='auto')
         plt.show()
 
 
