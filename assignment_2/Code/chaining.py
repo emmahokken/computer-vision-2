@@ -5,9 +5,6 @@ from matplotlib import pyplot as plt
 import sys
 import pandas as pd
 
-def zeroes(size):
-    return np.zeros(size)
-
 def chaining():
     pvm = pd.DataFrame()
 
@@ -39,42 +36,19 @@ def chaining():
             else:
                 pvm = get_pvm(pvm, img_number, img_number2, p, p_a)
 
+    pvm.to_csv('Data/pvm.csv')
+    print(pvm.shape)
+    pvm = pvm.values
     print(pvm.shape)
 
-    pvm = pvm.values
+    # pav = pvm[~np.isnan(pvm)]
+    norm = np.where(np.isnan(pvm), 1, 0)
     plt.imshow(pvm, aspect='auto')
     plt.show()
-    norm = np.where(pvm > 0, 1, 0)
 
     plt.imshow(norm, aspect='auto')
     plt.show()
     return pvm, norm
-
-def get_pvm(pvm, img_number, img_number2, p, p_a):
-    # very first iteration
-
-    found = False
-    for feature_point, point in enumerate(zip(pvm.loc[f'x{img_number}'], pvm.loc[f'y{img_number}'])):
-        if nearby(p[-1], point):
-            found = True
-            pvm.ix[f'x{img_number2}', feature_point] = p_a[-1][0]
-            pvm.ix[f'y{img_number2}', feature_point] = p_a[-1][1]
-            break
-
-    # when no new points are found, add a new column
-    if not found:
-        feature_point = f'{pvm.shape[1] + 1}'
-        pvm = set_points(pvm, img_number, img_number2, feature_point, p, p_a)
-
-    return pvm
-
-def set_points(pvm, img_number, img_number2, feature_point, p, p_a):
-    pvm.ix[f'x{img_number}', feature_point] = p[-1][0]
-    pvm.ix[f'y{img_number}', feature_point] = p[-1][1]
-    pvm.ix[f'x{img_number2}', feature_point] = p_a[-1][0]
-    pvm.ix[f'y{img_number2}', feature_point] = p_a[-1][1]
-
-    return pvm
 
 def get_matches(img_number, img_number2, t=0.25):
     img1 = cv.imread(f'Data/House/frame000000{img_number:02}.png')
@@ -99,12 +73,35 @@ def get_matches(img_number, img_number2, t=0.25):
 
     return matches, kp1, kp2
 
+def set_points(pvm, img_number, img_number2, feature_point, p, p_a):
+    pvm.ix[f'x{img_number}', feature_point] = p[-1][0]
+    pvm.ix[f'y{img_number}', feature_point] = p[-1][1]
+    pvm.ix[f'x{img_number2}', feature_point] = p_a[-1][0]
+    pvm.ix[f'y{img_number2}', feature_point] = p_a[-1][1]
+
+    return pvm
+
+def get_pvm(pvm, img_number, img_number2, p, p_a):
+    found = False
+    for feature_point, point in enumerate(zip(pvm.loc[f'x{img_number}'], pvm.loc[f'y{img_number}'])):
+        if nearby(p[-1], point):
+            found = True
+            pvm.ix[f'x{img_number2}', feature_point] = p_a[-1][0]
+            pvm.ix[f'y{img_number2}', feature_point] = p_a[-1][1]
+            break
+
+    # when no new points are found, add a new column
+    if not found:
+        feature_point = f'{pvm.shape[1] + 1}'
+        pvm = set_points(pvm, img_number, img_number2, feature_point, p, p_a)
+
+    return pvm
+
 def nearby(points1, points2, t=10):
     x1, y1 = points1
     x2, y2 = points2
     close = x1 - t <= x2 <= x1 + t and y1 - t <= y2 <= y1 + t
     return close
-
 
 def test_pvm():
     with open('PointViewMatrix.txt', 'r') as f:
@@ -114,11 +111,9 @@ def test_pvm():
             line = np.array(line.split(' '))
             print(line.shape)
             bigboi[i, :] = line.squeeze()
-            # break
 
         plt.imshow(bigboi, aspect='auto')
         plt.show()
-
 
 if __name__ == '__main__':
     chaining()
