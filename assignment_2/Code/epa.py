@@ -47,6 +47,9 @@ def construct_F(p, p_a):
     D_f = np.diag(D_f)
     F = U_f.dot(D_f.dot(V_ft))
 
+    # Test epipolar contraint
+    # print(np.mean(A.dot(F.reshape(9,1))))
+
     # Denormalize F
     if ARGS.normalize == True:
         F = (T_a.T).dot(F.dot(T))
@@ -89,6 +92,7 @@ def normalize_p(p):
     d = np.square(p-m)
     d = np.sqrt(np.sum(d[0:2], axis=0))
     d = np.mean(d)
+
     sqrt2 = np.sqrt(2)
 
     # Normalization matrix
@@ -100,7 +104,6 @@ def normalize_p(p):
     # Normalize p
     p_h = T_matrix.dot(p)
     p_h = np.float32(p_h)
-
 
     return(p_h, T_matrix)
 
@@ -143,9 +146,9 @@ def get_matches(img1, img2):
     p_a = np.float32(p_a).T
 
     # convert points to homogeneous coordinates
-    z = 1
-    p = np.insert(p/z, 2, z, axis=0)
-    p_a = np.insert(p_a/z, 2, z, axis=0)
+    w = 1
+    p = np.insert(p/w, 2, w, axis=0)
+    p_a = np.insert(p_a/w, 2, w, axis=0)
 
     return(p, p_a)
 
@@ -223,9 +226,9 @@ def epa():
 
 if __name__ == "__main__":
     PARSER = argparse.ArgumentParser()
-    PARSER.add_argument('--image_1', default='01', type=str,
+    PARSER.add_argument('--image_1', default='07', type=str,
                         help='fist image')
-    PARSER.add_argument('--image_2', default='02', type=str,
+    PARSER.add_argument('--image_2', default='15', type=str,
                         help='second image')
     PARSER.add_argument('--f_method', default='ransac', type=str,
                         help='method for constructing fundamental matrix',
