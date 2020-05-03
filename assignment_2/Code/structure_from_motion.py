@@ -57,13 +57,13 @@ def sfm():
 
     pvm = pvm - np.mean(pvm, axis=1).reshape(-1, 1)
     S, M = get_motion_structure(pvm)
-    visualize(S.T)
+    #visualize(S.T)
 
     # Visualize constructed point view matrix
     pvm = pd.read_csv(f'../results/chaining/pvm/pvm_bf_0.25_10.csv', index_col=0).values
 
     row, col = pvm.shape[0], pvm.shape[1]
-    for r in range(row):
+    for r in range(0,row,ARGS.consecutive_frames):
         S_all = []
         for c in range(col):
             # get dense block
