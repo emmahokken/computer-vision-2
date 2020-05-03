@@ -33,6 +33,7 @@ def sfm_procrustus():
             S_list.append(S)
             index_list.append(indices)
 
+    print(len(S_list))
     for i, s in enumerate(S_list):
         if i > 0 and i + 1 < len(S_list):
             look_at = []
@@ -42,9 +43,20 @@ def sfm_procrustus():
             from_2 = [int(np.where(index_list[i + 1] == la)[0]) for la in look_at]
             s1 = s[:, from_1]
             s2 = S_list[i + 1][:, from_2]
+            if s1.shape[1] > 0 and s2.shape[1] > 0:
+                mtx1, mtx2, disp = procrustes(s1, s2)
 
-            mtx1, mtx2, disp = procrustes(s1, s2)
 
+            if ARGS.visualize:
+                visualize(mtx1.T)
+                fig = plt.figure()
+                ax = fig.add_subplot(111, projection='3d')
+                ax.scatter(s1[0], s1[1], s1[2])
+                ax.scatter(s2[0], s2[1], s2[2])
+                # plt.show()
+                ax.scatter(mtx1[0], mtx1[1], mtx1[2])
+                ax.scatter(mtx2[0], mtx2[1], mtx2[2])
+                plt.show()
 
 
 def get_motion_structure(dense_block):
@@ -69,7 +81,7 @@ def visualize(S):
 
 def get_dense_block(pvm, c):
     dense_block = pvm[:, 0]
-    dense_block = ddense_block[np.invert(np.isnan(dense_block))]
+    dense_block = dense_block[np.invert(np.isnan(dense_block))]
 
     if dense_block.shape[0] < 2 * ARGS.consecutive_frames:
         return False, False
@@ -124,7 +136,7 @@ if __name__ == '__main__':
 
     PARSER = argparse.ArgumentParser()
 
-    PARSER.add_argument('--viz', default=False, type=bool,
+    PARSER.add_argument('--visualize', default=False, type=bool,
                         help='whether to visualize the result')
     PARSER.add_argument('--match_method', default='bf', type=str,
                         help='which method to use for matching feature points', choices=['bf', 'flann'])
@@ -134,12 +146,12 @@ if __name__ == '__main__':
                         help='threshold for determining whether two points are similar')
     PARSER.add_argument('--consecutive_frames', default=3, type=int,
                         help='amount of consecutive frames')
-    PARSER.add_argument('--stitching_method', default=3, type=str,
+    PARSER.add_argument('--stitching_method', default='pr', type=str,
                         help='which method to use for stitching', choices=['icp', 'pr'])
 
     ARGS = PARSER.parse_args()
 
     if ARGS.stitching_method == 'icp':
         sfm_icp()
-    else:
+    elif ARGS.stitching_method == 'pr':
         sfm_procrustus()

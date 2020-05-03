@@ -44,7 +44,20 @@ Default parameters are set to create the matrix with Brute Force matching, using
 
 Structure from Motion (Section 5)
 
+NOTE: python chaining.py MUST be run before running this section, as the point-view matrix needs to be generated beforehand! 
+
 In order to run the program to create the 3D reconstruction run
 
 python structure_from_motion.py  
+
+The corresponding parameters are:
+
+-h, --help  	--> 	show this help message and exit
+--visualize 	-->    	whether to visualize the result
+--match_method  --> 	{bf,flann} which method to use for matching feature points
+--dist_filter  	-->	initial points filtering
+--nearby_filter	-->	threshold for determining whether two points are
+                        similar
+--consecutive_frames --> amount of consecutive frames
+--stitching_method  -->	{icp,pr} which method to use for stitching
 
