@@ -77,7 +77,7 @@ def get_pvm(pvm, img_n1, img_n2, p, p_a):
 def nearby(points1, points2, t):
     x1, y1 = points1
     x2, y2 = points2
-    close = x1 - t <= x2 <= x1 + t and y1 - t <= y2 <= y1 + t
+    close = x1 - t <= x2 and x2 <= x1 + t and y1 - t <= y2 and y2 <= y1 + t
     return close
 
 def test_pvm():

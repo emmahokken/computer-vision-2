@@ -4,13 +4,14 @@ How to run the code:
 
 First, run pip install -r requirements.txt to install necessary dependencies. 
 
+Then, make sure you are located in the code/ directory. 
 
 
 Fundamental Matrix (Section 3)
 
 In order to run the various implementation for estimating the fundamental matrix and drawing the epipolar lines, run the following program. 
 
-python Code/epa.py
+python epa.py
 
 Default parameters are set for running the algorithm with. Full list of parameters can be found below. 
 
@@ -45,5 +46,5 @@ Structure from Motion (Section 5)
 
 In order to run the program to create the 3D reconstruction run
 
-python Code/structure_from_motion.py  
+python structure_from_motion.py  
 
