@@ -7,9 +7,27 @@ import argparse
 from scipy import sparse
 from chaining import chaining
 from mpl_toolkits.mplot3d import Axes3D
+import sys
+from pathlib import Path
+
+def get_motion_structure(dense_block):
+    U, W, Vt = np.linalg.svd(dense_block)
+
+    U_3 = U[:,:3]
+    W_3 = np.diag(W[:3])
+    Vt_3 = Vt[:3, :]
+
+    M = U_3.dot(np.sqrt(W_3))
+    S = np.sqrt(W_3).dot(Vt_3)
+    S_list.append(S)
+
+    return(S, M)
+
+
+
 
 def sfm():
-    pvm = pd.read_csv(f'results/chaining/pvm/pvm_{ARGS.match_method}_{ARGS.dist_filter}_{ARGS.nearby_filter}.csv', index_col=0).values
+    pvm = pd.read_csv(f'../results/chaining/pvm/pvm_{ARGS.match_method}_{ARGS.dist_filter}_{ARGS.nearby_filter}.csv', index_col=0).values
     row, col = pvm.shape[0], pvm.shape[1]
 
     S_list = []
@@ -24,17 +42,10 @@ def sfm():
             # normalize by translating to mean
             dense_norm = dense_block - np.mean(dense_block, axis=1).reshape(-1, 1)
 
-            # apply SVD to dense submatrix
-            U, W, Vt = np.linalg.svd(dense_norm)
-
-            U_3 = U[:,:3]
-            W_3 = np.diag(W[:3])
-            Vt_3 = Vt[:3, :]
-
-            M = U_3.dot(np.sqrt(W_3))
-            S = np.sqrt(W_3).dot(Vt_3)
-            S_list.append(S)
-
+            S, M = get_motion_structure(dense_norm)
+            print(S)
+            print(M)
+            sys.exit()
 
     # print(np.array(S_list).shape)
     fig = plt.figure()
