@@ -204,8 +204,8 @@ def epa():
     Eight point algorithm
     '''
     # read images and make them greyscale
-    img1 = cv.imread('../data/House/frame000000{}.png'.format(ARGS.image_1))
-    img2 = cv.imread('../data/House/frame000000{}.png'.format(ARGS.image_2))
+    img1 = cv.imread(f'../data/house/frame000000{ARGS.image_n1:02}.png')
+    img2 = cv.imread(f'../data/house/frame000000{ARGS.image_n2:02}.png')
     img1 = cv.cvtColor(img1, cv.COLOR_RGB2GRAY)
     img2 = cv.cvtColor(img2, cv.COLOR_RGB2GRAY)
 
@@ -226,9 +226,9 @@ def epa():
 
 if __name__ == "__main__":
     PARSER = argparse.ArgumentParser()
-    PARSER.add_argument('--image_1', default='07', type=str,
+    PARSER.add_argument('--img_n1', default=1, type=int,
                         help='fist image')
-    PARSER.add_argument('--image_2', default='15', type=str,
+    PARSER.add_argument('--img_n2', default=2, type=int,
                         help='second image')
     PARSER.add_argument('--f_method', default='ransac', type=str,
                         help='method for constructing fundamental matrix',

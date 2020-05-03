@@ -8,9 +8,12 @@ from scipy.spatial import procrustes
 from mpl_toolkits.mplot3d import Axes3D
 import math
 from sklearn.neighbors import NearestNeighbors
+import sys
+from pathlib import Path
+import open3d as o3d
 
-def sfm():
-    pvm = pd.read_csv(f'results/chaining/pvm/pvm_{ARGS.match_method}_{ARGS.dist_filter}_{ARGS.nearby_filter}.csv', index_col=0).values
+def sfm_procrustus():
+    pvm = pd.read_csv(f'../results/chaining/pvm/pvm_{ARGS.match_method}_{ARGS.dist_filter}_{ARGS.nearby_filter}.csv', index_col=0).values
     row, col = pvm.shape[0], pvm.shape[1]
 
     S_list = []
@@ -42,7 +45,7 @@ def sfm():
 
             mtx1, mtx2, disp = procrustes(s1, s2)
 
-            
+
 
 def get_motion_structure(dense_block):
     U, W, Vt = np.linalg.svd(dense_block)
@@ -56,11 +59,17 @@ def get_motion_structure(dense_block):
 
     return S, M
 
-def get_dense_block(pvm, c):
+def visualize(S):
+    pcd = o3d.geometry.PointCloud()
+    pcd.points = o3d.utility.Vector3dVector(S)
+    o3d.io.write_point_cloud("test.ply", pcd)
 
-    # check how many images have points
+    pcd_load = o3d.io.read_point_cloud("test.ply")
+    o3d.visualization.draw_geometries([pcd_load])
+
+def get_dense_block(pvm, c):
     dense_block = pvm[:, 0]
-    dense_block = dense_block[np.invert(np.isnan(dense_block))]
+    dense_block = ddense_block[np.invert(np.isnan(dense_block))]
 
     if dense_block.shape[0] < 2 * ARGS.consecutive_frames:
         return False, False
@@ -78,6 +87,39 @@ def get_dense_block(pvm, c):
 
     return dense_block, indices
 
+
+def sfm_icp():
+    # Visualize benchmark point view matrix
+    with open('../PointViewMatrix.txt', 'r') as f:
+        pvm = np.zeros((202, 215))
+        for i, line in enumerate(f):
+            line = np.array(line.split(' '))
+            pvm[i, :] = line.squeeze()
+
+    pvm = pvm - np.mean(pvm, axis=1).reshape(-1, 1)
+    S, M = get_motion_structure(pvm)
+    visualize(S.T)
+
+    # Visualize constructed point view matrix
+    pvm = pd.read_csv(f'../results/chaining/pvm/pvm_bf_0.25_10.csv', index_col=0).values
+
+    row, col = pvm.shape[0], pvm.shape[1]
+    for r in range(row):
+        S_all = []
+        for c in range(col):
+            # get dense block
+            dense_block, _ = get_dense_block(pvm[r:,c:], c)
+            if isinstance(dense_block, bool):
+                continue
+
+            # normalize by translating to mean
+            dense_block = dense_block - np.mean(dense_block, axis=1).reshape(-1, 1)
+            S, M = get_motion_structure(dense_block)
+            S_all.append(S)
+            visualize(S.T)
+            break
+        break
+
 if __name__ == '__main__':
 
     PARSER = argparse.ArgumentParser()
@@ -92,7 +134,12 @@ if __name__ == '__main__':
                         help='threshold for determining whether two points are similar')
     PARSER.add_argument('--consecutive_frames', default=3, type=int,
                         help='amount of consecutive frames')
+    PARSER.add_argument('--stitching_method', default=3, type=str,
+                        help='which method to use for stitching', choices=['icp', 'pr'])
 
     ARGS = PARSER.parse_args()
 
-    sfm()
+    if ARGS.stitching_method == 'icp':
+        sfm_icp()
+    else:
+        sfm_procrustus()
